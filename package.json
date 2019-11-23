@@ -8,9 +8,16 @@
     "lint": "vue-cli-service lint"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^1.2.25",
+    "@fortawesome/free-solid-svg-icons": "^5.11.2",
+    "@fortawesome/vue-fontawesome": "^0.1.8",
+    "bootstrap": "^4.3.1",
+    "bootstrap-vue": "^2.1.0",
     "core-js": "^3.3.2",
     "eslint-loader": "^2.1.2",
-    "vue": "^2.6.10"
+    "flag-icon-css": "^3.4.5",
+    "vue": "^2.6.10",
+    "vue-search-select": "^2.9.3"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "^4.0.0",
