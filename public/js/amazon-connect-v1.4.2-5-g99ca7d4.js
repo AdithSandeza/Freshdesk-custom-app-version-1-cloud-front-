@@ -21184,14 +21184,30 @@ AWS.apiLoader.services['sts']['2011-06-15'] = require('../apis/sts-2011-06-15.mi
    * A map from log level to console logger function.
    */
   var CONSOLE_LOGGER_MAP = {
-    TRACE: function (text) { console.info(text); },
-    DEBUG: function (text) { console.info(text); },
-    INFO: function (text) { console.info(text); },
-    LOG: function (text) { console.log(text); },
-    TEST: function (text) { console.log(text); },
-    WARN: function (text) { console.warn(text); },
-    ERROR: function (text) { console.error(text); },
-    CRITICAL: function (text) { console.error(text); }
+    TRACE: function (text) { 
+      //console.info(text); 
+    },
+    DEBUG: function (text) { 
+      //console.info(text); 
+    },
+    INFO: function (text) { 
+      //console.info(text); 
+    },
+    LOG: function (text) { 
+      //console.log(text); 
+    },
+    TEST: function (text) { 
+      //console.log(text); 
+    },
+    WARN: function (text) { 
+      //console.warn(text);
+     },
+    ERROR: function (text) { 
+      //console.error(text); 
+    },
+    CRITICAL: function (text) { 
+      //console.error(text); 
+    }
   };
 
   /**
@@ -21550,6 +21566,7 @@ AWS.apiLoader.services['sts']['2011-06-15'] = require('../apis/sts-2011-06-15.mi
     this._logs = [];
   };
 
+  //boopathi
   /** Create the singleton logger instance. */
   connect.rootLogger = new Logger();
 
@@ -24865,8 +24882,15 @@ AWS.apiLoader.services['sts']['2011-06-15'] = require('../apis/sts-2011-06-15.mi
       if (params.loginPopup !== false) {
         try {
           var loginUrl = createLoginUrl(params);
-          connect.getLog().warn("ACK_TIMEOUT occurred, attempting to pop the login page if not already open.");
-          connect.core.loginWindow = connect.core.getPopupManager().open(loginUrl, connect.MasterTopics.LOGIN_POPUP);
+
+          /* modified by boopathi */
+
+          // connect.getLog().warn("ACK_TIMEOUT occurred, attempting to pop the login page if not already open.");
+          // connect.core.loginWindow = connect.core.getPopupManager().open(loginUrl, connect.MasterTopics.LOGIN_POPUP);
+          var x = screen.width/2 - 420/2;
+          my_window = window.open(loginUrl,'winname','directories=no,width=420,height=560,left='+x+',top=50');
+          
+          /* modified by boopathi */
 
         } catch (e) {
           connect.getLog().error("ACK_TIMEOUT occurred but we are unable to open the login popup.").withException(e);
@@ -24879,6 +24903,13 @@ AWS.apiLoader.services['sts']['2011-06-15'] = require('../apis/sts-2011-06-15.mi
         }, CCP_IFRAME_REFRESH_INTERVAL);
 
         conduit.onUpstream(connect.EventType.ACKNOWLEDGE, function () {
+
+          /* modified by boopathi */
+
+          my_window.close();
+
+          /* modified by boopathi */
+
           this.unsubscribe();
           global.clearInterval(connect.core.iframeRefreshInterval);
           connect.core.iframeRefreshInterval = null;

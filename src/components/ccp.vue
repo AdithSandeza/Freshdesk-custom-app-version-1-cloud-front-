@@ -1,7 +1,7 @@
 <template>
   <div class="ccp-container">
     <div id="containerDiv" style="display:none"/>
-    <b-container class="bv-example-row">
+    <b-container v-if="loggedin" class="bv-example-row">
 
       <!-- title bar  -->
       <b-row class="text-center title-bar">
@@ -15,9 +15,9 @@
               <span class="title-status"> {{ agentStatus }} </span> <font-awesome-icon class="fontIcon" icon="chevron-down" />
             </template>
             <b-dropdown-item v-for="state in agentStates" 
-                              :key="state.stateCode"
-                              @click="changeStatus(state.stateCode)">
-                              {{state.stateName}}
+                              :key="state.type"
+                              @click="changeStatus(state)">
+                              {{state.name}}
             </b-dropdown-item>
           </b-dropdown>
         </b-col>
@@ -28,8 +28,13 @@
 
       <!-- settings block -->
       <b-container v-show="pageUrl == 'settings'" class="body-container">
+
+        <p> {{ $t("logged_in_as") }} <strong> {{agentUserName}} </strong></p>
+
+        <b-form-select v-model="languageSelected" :options="languageOptions" value-field="value" size="sm" class="mt-3"></b-form-select>
         
-        <b-form-group label="Phone Type">
+        <b-button pill style="margin-top:30px"  @click="toggleSettings()" >Back</b-button>
+        <!-- <b-form-group label="Phone Type">
           <b-form-radio-group
             id="select_phone_type"
             v-model="selected_phone_type"
@@ -51,16 +56,16 @@
           <b-button @click="onSaveDeskPhone()" variant="secondary">
             Save
           </b-button>
-        </b-input-group>
+        </b-input-group> -->
 
         <!-- country code block -->
-        <b-container v-if="toggle_country_code_settings && selected_phone_type == 2" class="body-container-content">
-          <model-list-select :list="options1"
+        <!-- <b-container v-if="toggle_country_code_settings && selected_phone_type == 2" class="body-container-content">
+          <model-list-select :list="dialableCountries"
                      v-model="selectedCountrySettings"
                      option-value="code"
                      option-text="name">
           </model-list-select>
-        </b-container>
+        </b-container> -->
       </b-container>
 
       <!-- Dial pad and settings block -->
@@ -85,7 +90,7 @@
        
         <!-- country code block -->
         <b-container v-if="homePageUrl == 'countrycode'" class="body-container-content">
-          <model-list-select :list="options1"
+          <model-list-select :list="dialableCountries"
                      v-model="selectedCountry"
                      option-value="code"
                      option-text="name">
@@ -151,21 +156,90 @@
         </b-container>
 
           <!-- call history block-->
-        <b-container v-show="homePageUrl == 'calllog'" class="body-container-content">
+
+        <div v-show="homePageUrl == 'calllog'" class="body-container-content">
+          <b-tabs 
+          content-class="mt-3" 
+           fill
+          active-nav-item-class="my-nav-active"
+          >
+            <b-tab>
+              <template v-slot:title>
+                <font-awesome-icon class="contact-side-icon" icon="phone" size="sm"/> {{ $t("call_logs") }}
+              </template>
+              <div class="call-logs-list">
+                <b-row v-for="(call,index) in call_history.filter(call_history => !dialedNumber || call_history.contactNumber.toLowerCase().includes(dialedNumber.toLowerCase()) || call_history.contactName.toLowerCase().includes(dialedNumber.toLowerCase()))" class="call-history-row">
+                  <b-col cols="1"><font-awesome-icon style="color:#ccc" icon="user" size="lg"/></b-col>
+                  <b-col cols="7">
+                    <p @click="openContact(call.contactId)" class="call-history-values call-history-values-name" >{{ call.contactName }}</p>
+                    <p class="call-history-values call-history-values-number">{{ call.contactNumber }}</p>
+                    </b-col>
+                  <b-col cols="3" class="text-left">
+                    <font-awesome-icon class="contact-side-icon" style="color:#ccc;cursor:pointer" @click="dialFromHistory(call.contactNumber,call.contactName)" icon="phone" size="sm"/>
+                    <font-awesome-icon class="contact-side-icon" v-if="call.contactName == 'Unknown Caller'" style="color:#ccc;cursor:pointer" @click="addContact(call.contactNumber)" icon="user-plus" size="sm"/>
+                  </b-col>
+                </b-row>
+              </div>
+            </b-tab>
+            <b-tab>
+              <template v-slot:title>
+                <font-awesome-icon class="contact-side-icon" icon="address-book" size="sm"/> {{ $t("contacts") }}
+              </template>
+              <div class="call-logs-list">
+                <b-row v-for="(call,index) in contacts.filter(contacts => !dialedNumber || contacts.contactNumber.toLowerCase().includes(dialedNumber.toLowerCase()) || contacts.contactName.toLowerCase().includes(dialedNumber.toLowerCase()))" class="call-history-row">
+                  <b-col cols="1"><font-awesome-icon style="color:#ccc" icon="user" size="lg"/></b-col>
+                  <b-col cols="7">
+                    <p @click="openContact(call.contactId)" class="call-history-values call-history-values-name" >{{ call.contactName }}</p>
+                    <p class="call-history-values call-history-values-number">{{ call.contactNumber }}</p>
+                    </b-col>
+                  <b-col cols="3" class="text-left">
+                    <font-awesome-icon class="contact-side-icon" style="color:#ccc;cursor:pointer" @click="dialFromHistory(call.contactNumber,call.contactName)" icon="phone" size="sm"/>
+                    <font-awesome-icon class="contact-side-icon" v-if="call.contactName == 'Unknown Caller'" style="color:#ccc;cursor:pointer" @click="addContact(call.contactNumber)" icon="user-plus" size="sm"/>
+                  </b-col>
+                </b-row>
+              </div>
+            </b-tab>
+          </b-tabs>
+        </div>
+        <!-- <b-container v-show="homePageUrl == 'calllog'" class="body-container-content">
           <h6 style="text-align:left"> Call Logs </h6>
-          <div class="call-logs-list">
-          <b-row v-for="(call,index) in call_history" class="call-history-row">
-            <b-col cols="1"><font-awesome-icon style="color:#ccc" icon="user" size="lg"/></b-col>
-            <b-col cols="7">
-              <p @click="openContact(call.contactId)" class="call-history-values call-history-values-name" >{{ call.contactName }}</p>
-              <p class="call-history-values call-history-values-number">{{ call.contactNumber }}</p>
-              </b-col>
-            <b-col cols="3" class="text-left">
-              <font-awesome-icon class="contact-side-icon" style="color:#ccc;cursor:pointer" @click="dialFromHistory(call.contactNumber,call.contactName)" icon="phone" size="sm"/>
-              <font-awesome-icon class="contact-side-icon" v-if="call.contactName == 'Unknown Caller'" style="color:#ccc;cursor:pointer" @click="addContact(call.contactNumber)" icon="user-plus" size="sm"/>
-            </b-col>
-          </b-row>
-          </div>
+          
+        </b-container> -->
+
+        <!-- Add contact block-->
+        <b-container v-show="homePageUrl == 'addcontact'" class="body-container-content">
+          <template>
+            <div>
+              <b-form-group
+                id="contactName"
+                label="Contact Name"
+                label-for="contactName"
+                :invalid-feedback="nameInvalidFeedback"
+                :state="nameState"
+              >
+                <b-form-input id="contactName" v-model="contactForm.contactName" size="sm" :state="nameState" trim></b-form-input>
+              </b-form-group>
+
+              <b-form-group
+                id="contactNumber"
+                label="Contact Number"
+                label-for="contactNumber"
+                :invalid-feedback="contactInvalidFeedback"
+                :state="numberState"
+              >
+                <b-form-input id="contactNumber" v-model="contactForm.contactNumber" size="sm" :disabled="true" :state="numberState" trim></b-form-input>
+              </b-form-group>
+
+              <div class="call-handle-buttons-container">
+                <b-button size="sm" pill @click="cancelCreateNewContact()" class="call-handle-buttons" variant="danger">
+                     Cancel
+                </b-button>
+                <b-button size="sm" pill @click="createNewContact()" :disabled="addContactButton" class="call-handle-buttons" variant="success">
+                     {{ addContactButtonText }}
+                </b-button>
+            </div>
+            </div>
+          </template>
         </b-container>
       </b-container> 
 
@@ -179,10 +253,10 @@
             <!-- <h6 v-if="callStatus == 'Connected' || callStatus == 'Muted' || callStatus == 'OnHold'">00:00</h6> -->
             <div v-if="callStatus == 'Incoming' || callStatus == 'Connecting' || callStatus == 'Calling'" class="call-handle-buttons-container">
                 <b-button v-if="!outBoundCall" size="sm" pill @click="onAcceptedCall()" class="call-handle-buttons" variant="success">
-                  <font-awesome-icon  icon="phone" size="sm"/>   Accept
+                  <font-awesome-icon  icon="phone" size="sm"/>   {{ $t('accept') }}
                 </b-button>
                 <b-button size="sm" pill @click="onDeclineCall()" class="call-handle-buttons" variant="danger">
-                  <font-awesome-icon  icon="phone-slash" size="sm"/>   Decline
+                  <font-awesome-icon  icon="phone-slash" size="sm"/>   {{ $t('decline') }}
                 </b-button>
             </div>
             <div v-else-if="callStatus == 'Connected' || callStatus == 'Muted' || callStatus == 'OnHold' || callStatus == 'Calling'" class="call-handle-buttons-container">
@@ -199,23 +273,64 @@
                   <font-awesome-icon  icon="random" size="sm"/>   Transfer
                 </b-button> -->
                 <b-button block @click="onEndCall()" class="call-handle-button-end" size="sm" variant="danger">
-                  <font-awesome-icon  icon="phone-slash" size="sm"/>   End Call
+                  <font-awesome-icon  icon="phone-slash" size="sm"/>   {{ $t('end_call') }}
                 </b-button>
             </div>
-            <div v-if="callStatus == 'Incoming' || callStatus == 'Connecting' || callStatus == 'Connected' || callStatus == 'Muted' || callStatus == 'OnHold'">
-              <h6 v-if="!outBoundCall" class="incoming-ticket-heading">Open Tickets</h6>
-              <div class="tickets-list">
-                <b-row v-if="!outBoundCall" v-for="(ticket,index) in  tickets" class="ticket-history-row">
-                  <b-col cols="12">
-                    <p @click="openTicket(ticket.id)" class="call-history-values call-history-values-name" ><b># {{ ticket.id }}</b></p>
-                    <p class="call-history-values call-history-values-number">{{ ticket.subject}}</p>
+            <div style="width: 325px;margin-top: 10px;" v-if="callStatus == 'Incoming' || callStatus == 'Connecting' || callStatus == 'Connected' || callStatus == 'Muted' || callStatus == 'OnHold'">
+              <div v-if="!editor">
+                <b-row v-if="!outBoundCall" >
+                  <b-col cols="6">
+                    <h6  class="incoming-ticket-heading">{{ $t('open_tickets') }}</h6>
+                  </b-col>
+                  <b-col cols="6">
+                    <b-button @click="createTicket()" :disabled="noteCreateDisable" pill size="sm" class="call-create-ticket" variant="primary"><font-awesome-icon v-if=" createTicketButton == 'New Ticket'" icon="plus" size="sm"/> {{ createTicketButton }}</b-button>
                   </b-col>
                 </b-row>
+                <div class="tickets-list">
+                  <b-row v-if="!outBoundCall" v-for="(ticket,index) in  tickets" class="ticket-history-row">
+                    <b-col cols="12">
+                      <b-row>
+                        <b-col cols="6">
+                          <p @click="openTicket(ticket.id)" class="call-history-values call-history-values-name" > <strong>#</strong> {{ ticket.id }}</p>
+                        </b-col>
+                        <b-col cols="6">
+                          <b-button @click="createNote(ticket.id)" pill size="sm" class="call-addnote-ticket" variant="outline-secondary"><font-awesome-icon  icon="plus" size="sm"/> Note</b-button>
+                        </b-col>
+                      </b-row>
+                      <p class="call-history-values call-history-values-number">{{ ticket.subject}}</p>
+                    </b-col>
+                  </b-row>
+                </div>
               </div>
+              <div v-if="editor">
+                <b-row >
+                  <b-col cols="5">
+                    <h6  class="incoming-ticket-heading">{{ editorHeading }}</h6>
+                  </b-col>
+                  <b-col cols="7">
+                    <b-button @click="createNoteSubmit()" :disabled="noteCreateDisable" pill size="sm" class="call-create-ticket" variant="outline-success"><font-awesome-icon v-if="edittorButtonName == 'Add Note'" icon="plus" size="sm"/> {{ edittorButtonName }}</b-button>
+                    <b-button @click="cancelEditor()" pill size="sm" class="call-create-ticket" variant="outline-danger"><font-awesome-icon  icon="chevron-left" size="sm"/> Cancel</b-button>
+                  </b-col>
+                </b-row>
+                <div style="margin-top: 10px" class="editor-textarea">
+                  <b-form-textarea
+                    id="textarea"
+                    v-model="editorText"
+                    placeholder="Enter something..."
+                    rows="8"
+                    max-rows="8"
+                  ></b-form-textarea>
+                </div>  
+              </div> 
             </div> 
           </div>
         </div>
       </b-container>
+    </b-container>
+    <b-container v-if="!loggedin" class="bv-example-row pre-signin">
+        <h4>Signin to AWS Instance</h4>
+        <h6 style="color: #00425f !important;"> <strong>{{ instanceName}} </strong></h6>
+        <h6>Refresh the tab if you face any issues</h6>
     </b-container>
   </div>
 </template>
@@ -226,16 +341,53 @@ import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap-vue/dist/bootstrap-vue.css'
 import 'flag-icon-css/css/flag-icon.css'
 import 'vue-search-select/dist/VueSearchSelect.css'
+import  { dialableCountries } from '../utils/dialableCountries'
 
 
 export default {
+  computed: {
+      nameState() {
+        return this.contactForm.contactName.length >= 4 ? true : false
+      },
+      numberState() {
+        return this.contactForm.contactNumber.length >= 10 ? true : false
+      },
+      nameInvalidFeedback() {
+        if (this.contactForm.contactName.length > 4) {
+          return ''
+        } else if (this.contactForm.contactName.length > 0) {
+          return 'Enter at least 4 characters'
+        }
+      },
+      contactInvalidFeedback() {
+        if (this.contactForm.contactNumber.length > 10) {
+          return ''
+        } else if (this.contactForm.contactNumber.length > 0) {
+          return 'Enter valid phone number'
+        }
+      },
+    },
   data() {
     return {
+      languageSelected : 'en' ,
+      languageOptions: [
+        { value: 'en', text: 'English' },
+        { value: 'ja', text: 'Japanese' }
+      ],
       dialedNumber: '',
+      createTicketButton : "New Ticket",
+      editor: false,
+      editorHeading: "",
+      edittorButtonName: "",
+      noteCreateDisable: false,
+      editorText: "",
+      loggedin: false,
+      connect_url: '',
+      instanceName : '',
       pageUrl: "home",
-      homePageUrl : "calllog",
+      homePageUrl : "calllog", // chg to calllog
       dialedNumbersettings: '',
-      outBoundCall: 'true',
+      outBoundCall: true,
       agentStatus: '',
       changeItem : 0,
       toggle_call_history: true,
@@ -244,43 +396,110 @@ export default {
       toggle_country_code_settings: false,
       toggle_call_block: false,
       selected_phone_type: 1,
-      agentStates: [
-          { stateCode: 'ROUTABLE', stateName: 'Available' },
-          { stateCode: 'OFFLINE', stateName: 'Offline' }
-      ],
+      agentStates: [],
       phoneTypesOption: [
           { text: 'Softphone', value: '1' },
           { text: 'Desk phone', value: '2' }
       ],
       toogle_settings: false,
-      options1: [
-          { code: '91', name: '+ 91' + ' - ' + 'India', flag: 'flag-icon-in' },
-          { code: '1', name: '+ 1' + ' - ' + 'United States', flag: 'flag-icon-us' },
-          { code: '297', name: '+ 297' + ' - ' + 'Aruba', flag: 'flag-icon-7' },
-          { code: '43', name: '+ 43' + ' - ' + 'Austria', flag: 'flag-icon-at' },
-          { code: '229', name: '+ 229' + ' - ' + 'Benin', flag: 'flag-icon-bj' },
+      dialableCountries: [
+          // { code: '91', name: '+ 91' + ' - ' + 'India', flag: 'flag-icon-in' },
+          // { code: '1', name: '+ 1' + ' - ' + 'United States', flag: 'flag-icon-us' },
+          // { code: '297', name: '+ 297' + ' - ' + 'Aruba', flag: 'flag-icon-7' },
+          // { code: '43', name: '+ 43' + ' - ' + 'Austria', flag: 'flag-icon-at' },
+          // { code: '229', name: '+ 229' + ' - ' + 'Benin', flag: 'flag-icon-bj' },
         ],
-      call_history: [],
-      tickets: [],
+      call_history: [ 
+        // { "contactId" : "1" , "contactName" : "Unknown Caller" , "contactNumber" : "+18333537852"},
+        // { "contactId" : "2" , "contactName" : "Boopathi" , "contactNumber" : "+18333537852"},
+        // { "contactId" : "2" , "contactName" : "Boopathi" , "contactNumber" : "+18444444852"},
+        // { "contactId" : "1" , "contactName" : "Unknown Caller" , "contactNumber" : "+18333537852"},
+        // { "contactId" : "2" , "contactName" : "Boopathi" , "contactNumber" : "+18333537852"},
+        // { "contactId" : "2" , "contactName" : "Boopathi" , "contactNumber" : "+18444444852"},
+        // { "contactId" : "1" , "contactName" : "Unknown Caller" , "contactNumber" : "+18333537852"},
+        // { "contactId" : "2" , "contactName" : "Boopathi" , "contactNumber" : "+18333537852"},
+        // { "contactId" : "2" , "contactName" : "Boopathi" , "contactNumber" : "+18444444852"},
+        // { "contactId" : "1" , "contactName" : "Unknown Caller" , "contactNumber" : "+18333537852"},
+        // { "contactId" : "2" , "contactName" : "Boopathi" , "contactNumber" : "+18333537852"},
+        // { "contactId" : "2" , "contactName" : "Boopathi" , "contactNumber" : "+18444444852"}
+      ],
+      contacts: [ 
+        // { "contactId" : "1" , "contactName" : "Bob" , "contactNumber" : "+18333537852"},
+        // { "contactId" : "2" , "contactName" : "Tom" , "contactNumber" : "+18333537852"},
+        // { "contactId" : "2" , "contactName" : "Steve" , "contactNumber" : "+18444444852"}
+      ],
+      tickets: [ { "id" : "18" , "subject" : "this is subject of the sample aws connect ticket generated by aws connect phone sandeza" },{ "id" : "19" , "subject" : "this is subject of the sample aws connect ticket generated by aws connect phone sandeza" },{ "id" : "20" , "subject" : "this is subject of the sample aws connect ticket generated by aws connect phone sandeza" },{ "id" : "21" , "subject" : "this is subject of the sample aws connect ticket generated by aws connect phone sandeza" },{ "id" : "345678" , "subject" : "this is subject of the sample aws connect ticket generated by aws connect phone sandeza" },{ "id" : "7654765" , "subject" : "this is subject of the sample aws connect ticket generated by aws connect phone sandeza" }],
       selectedCountry: { code: '1', flag: 'flag-icon-us' },
       selectedCountrySettings: { code: '1', flag: 'flag-icon-us' },
       onAccepted: true,
       onHold: false,
       onMute: false,
-      callStatus: "Incoming",
+      callStatus: "Connected",
       callingName : "Unknown Caller",
-      callingNumber: "",
-      contactObject : "",
+      callingId: "",
+      callingNumber: "+1 234567890",
+      contactObject : "",                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
       agentObject : "",
       agentUserName: "",
       callStartTime: "",
-      callEndTime: ""
+      callEndTime: "",
+      newCreatedTicket: 0,
+      newNoteCreated: "",
+      addNoteFor: "",
+      activeContactId: "",
+      contactForm : {
+        contactName : '',
+        contactNumber: ''
+      },
+      addContactButton: false,
+      addContactButtonText: "Add Contact",
+      newContactCreated:''
     }
+  },
+  created(){
+    let uri = window.location.search.substring(1); 
+    let params = new URLSearchParams(uri);
+    this.connect_url = params.get("connect_url");
+    console.log("URL params url ==> " +params.get("connect_url"));
   },
   mounted() {
     this.handleLogin();
   },
   watch: {
+    languageSelected: function() {
+      this.$i18n.locale = this.languageSelected;
+      var passData = {};
+      passData.action = "languageChange";
+      passData.agentId = this.agentUserName;
+      passData.language = this.languageSelected;
+      console.log("----> passing contact "+ JSON.stringify(passData));
+      parent.postMessage(passData,"*");
+    },
+    newCreatedTicket: function() {
+      if(this.newCreatedTicket > 0) {
+        this.createTicketButton = "New Ticket";
+        this.noteCreateDisable = false;
+        this.createNote(this.newCreatedTicket);
+        this.newCreatedTicket = 0;
+      }
+    },
+    newNoteCreated: function(){
+      if(this.newNoteCreated == "success") {
+        this.newNoteCreated = "";
+        this.editorText = "";
+        this.edittorButtonName = "Add Note";
+        this.noteCreateDisable = false;
+        this.cancelEditor();
+      }
+    },
+    newContactCreated: function(){
+      if(this.newContactCreated == "success") {
+        this.contactForm.contactName = "";
+        this.edittorButtonName = "Add Contact";
+        this.addContactButton = false;
+        this.homePageUrl = "calllog"
+      }
+    },
     selectedCountry: function () {
       this.homePageUrl = this.homePageUrl == "countrycode" ? "calllog" : "countrycode";
     },
@@ -294,28 +513,60 @@ export default {
     }
   },
   methods: {
+    createNewContact(){
+      this.addContactButton = true;
+      this.addContactButtonText = "Adding";
+
+      let passData = {};
+      passData.action = "addContact";
+      passData.agentId = this.agentUserName;
+      passData.contactName = this.contactForm.contactName;
+      passData.contactNumber = this.contactForm.contactNumber;
+      parent.postMessage(passData,"*");
+      console.log("create contact " + JSON.stringify(passData));
+      
+    },
+    cancelCreateNewContact(){
+      this.homePageUrl = "calllog"
+    },
     handleLogin() {
 
       var thisKey = this;
-      
-      var loginUrl = 'https://oyocontact.awsapps.com/connect/ccp#/'
+      var loginUrl = this.connect_url;
+      //var loginUrl = "https://sandeza.awsapps.com/connect/ccp#/";
 
        window.addEventListener('message', function(event) {
         if(event.data.action == "calllogs"){
-          console.log("--> recived on connect app <--" + JSON.stringify(event.data.callData));
-          var eventData = event.data.callData;
-          console.log("--> recived and reversed on connect app <--" + JSON.stringify(eventData.reverse()));
-          thisKey.call_history = eventData.reverse();
-        }
+          console.log("--> recived on connect app <--" + JSON.stringify(event.data));
+          if(event.data.callData != null) {
+            let eventData = event.data.callData;
+            let eventDataRev = eventData.reverse()
+            thisKey.call_history = eventData.slice(0,25);
+          }
+          thisKey.contacts = event.data.contactList;
+          thisKey.languageSelected = event.data.language;
+        } else if(event.data.action == "createTicketSuccess"){
+          console.log("--> recived created ticket id on connect app <--" + JSON.stringify(event.data.ticket_id));
+          thisKey.newCreatedTicket = event.data.ticket_id;
+        } else if(event.data.action == "createNoteSuccess"){
+          console.log("--> recived created note status on connect app <--" + JSON.stringify(event.data.status));
+          thisKey.newNoteCreated = event.data.status;
+        } else if(event.data.action == "createContactSuccess"){
+          console.log("--> recived created contact status on connect app <--" + JSON.stringify(event.data.status));
+          thisKey.newContactCreated = event.data.status;
+        } else if(event.data.action == "makeOutboundCall"){
+          console.log("--> recived make outbound call on connect app <--" + JSON.stringify(event.data));
+          this.dialFromHistory(event.data.name,event.data.number)
+        } 
       } , false);
 
       connect.core.initCCP(containerDiv, {
-          ccpUrl: loginUrl,
-          loginPopup:    false,
-          region: "us-east-1",          
-          softphone:     {   
-            allowFramedSoftphone : true  
-          }
+        ccpUrl: loginUrl,
+        loginPopup:    false,
+        //region: "us-east-1",          
+        softphone:     {   
+          allowFramedSoftphone : true  
+        }
       });
 
       // saving contact object to state
@@ -327,24 +578,36 @@ export default {
       connect.agent(function(agent){
         thisKey.agentObject = agent;
         thisKey.agentStatus = agent.getState().name;
+        thisKey.agentStates = agent.getAgentStates();
+        console.log(agent.getDialableCountries());
+        thisKey.dialableCountries = dialableCountries(agent.getDialableCountries());
+        //console.log( "===> agent status " + JSON.stringify(agent.getAgentStates()));
       })
+
       
+
       var eventBus = connect.core.getEventBus();
       eventBus.subscribe(connect.AgentEvents.INIT, function () {
         var agentConfig = thisKey.agentObject.getConfiguration();
         thisKey.agentUserName = agentConfig.username;
+        thisKey.loggedin = true;
+        let passData = {};
+        passData.action = "agentConnected";
+        passData.agentId = agentConfig.username;
+        parent.postMessage(passData,"*");
         console.log("-------------------------------connected "+ thisKey.agentUserName);
       });
-
-
+      
       connect.contact(function(contact) {
         var data;
         contact.onConnecting(function() {
           var passData = {};
+          console.log("onConnecting---------------"+ JSON.stringify(contact.getAttributes()));
           passData.action ="incomingCall";
 
           var activeConnection = contact.getActiveInitialConnection();
           var contactId = activeConnection['contactId'];
+          thisKey.activeContactId = contactId;
           var connectionId = activeConnection['connectionId'];
           var conn = new connect.Connection(contactId, connectionId);
 
@@ -354,9 +617,13 @@ export default {
           }
           thisKey.callingNumber = phoneNumber;
           passData.contactNumber = phoneNumber;
-          if(data) {
+          data = contact.getAttributes();
+          //if(data) {
           var value = JSON.parse(data.customerInfo.value);
+          console.log("==============================>")
+          console.log(value);
           thisKey.callingName = value.name;
+          thisKey.callingId = value.id;
           passData.contactName = value.name;
           passData.contactId = value.id;
           if(value.tickets){
@@ -367,13 +634,12 @@ export default {
             passData.tickets = [];
             thisKey.tickets = [];
           }
-          } else {
-            thisKey.callingName = "Unknown Caller";
-            passData.contactName = "Unknown Caller";
-            passData.contactId = "Unknown";
-          }
+          // } else {
+          //   thisKey.callingName = "Unknown Caller";
+          //   passData.contactName = "Unknown Caller";
+          //   passData.contactId = "Unknown";
+          // }
           
-          console.log("onConnecting---------------"+ JSON.stringify(contact.getAttributes()));
           console.log("-------------------- pass data " + JSON.stringify(passData));
 
           passData.agentId = thisKey.agentUserName;
@@ -401,6 +667,9 @@ export default {
           } else {
             var passData = {};
             passData.action = "endcall";
+            passData.contactId = thisKey.activeContactId;
+            passData.ticketId = thisKey.addNoteFor;
+            passData.agentHandled = thisKey.agentUserName;
             parent.postMessage(passData,"*");
             thisKey.setAvailable();
             console.log("$$$$$$$ "+ JSON.stringify(thisKey.agentObject.getState()));
@@ -412,6 +681,36 @@ export default {
         });
         
       });
+    },
+    cancelEditor(){
+      this.editorText = "";
+      this.editor = false;
+    },
+    createTicket(){
+      this.noteCreateDisable = true;
+      this.createTicketButton = "Creating Ticket";
+      let passData = {};
+      passData.action = "createTicket";
+      passData.contactId = this.callingId;
+      passData.phoneNumber = this.callingNumber;
+      parent.postMessage(passData,"*");
+      console.log("create ticket " + JSON.stringify(passData));
+    },
+    createNote(ticketId){
+      this.addNoteFor = ticketId;
+      this.editorHeading = "For #" + ticketId;
+      this.edittorButtonName = "Add Note";
+      this.editor = true;
+    },
+    createNoteSubmit(){
+      this.noteCreateDisable = true;
+      this.edittorButtonName = "Adding Note";
+      let passData = {};
+      passData.action = "addNote";
+      passData.ticketId = this.addNoteFor;
+      passData.note = this.editorText;
+      parent.postMessage(passData,"*");
+      console.log("create note " + JSON.stringify(passData));
     },
     setAvailable(){
       console.log("set available triggered")
@@ -427,6 +726,9 @@ export default {
           console.log("set available failed");
         }
       });
+    },
+    refreshCCP(){
+      window.top.location.reload();
     },
     keyDial(number) {
 		this.dialedNumber = this.dialedNumber + number
@@ -550,38 +852,50 @@ export default {
       });
     },
     changeStatus(agentState){
-      console.log("change Status clicked --> " + agentState);
+      console.log("change Status clicked --> " + JSON.stringify(agentState));
       var thisKey = this;
-      if(agentState == "ROUTABLE") {
-        var routableState = this.agentObject.getAgentStates().filter(function(state) {
-          return state.type === connect.AgentStateType.ROUTABLE;
-        })[0];
-        this.pageUrl = "home";
-        this.agentObject.setState(routableState, {
-          success: function() { 
-            console.log("set available success");
-            thisKey.agentStatus = "Available"
-          },
-          failure: function() {
-            console.log("set available failed");
-          }
-        });
-      } else if(agentState == "OFFLINE") {
-        var routableState = this.agentObject.getAgentStates().filter(function(state) {
-          return state.type === connect.AgentStateType.OFFLINE;
-        })[0];
-        this.pageUrl = "home";
-        this.agentObject.setState(routableState, {
-          success: function() { 
-            console.log("set offline success");
-            thisKey.agentStatus = "Offline"
-            console.log("After change status --> "+ JSON.stringify(thisKey.agentObject.getState()));
-          },
-          failure: function() {
-            console.log("set offline failed");
-          }
-        });
-      }
+
+      this.agentObject.setState(agentState, {
+        success: function() { 
+          console.log("set status " + agentState.name + " success");
+          thisKey.agentStatus = agentState.name;
+        },
+        failure: function() {
+          console.log("set available " + agentState.name + " failed");
+        }
+      });
+
+      // if(agentState == "ROUTABLE") {
+      //   var routableState = this.agentObject.getAgentStates().filter(function(state) {
+      //     return state.type === connect.AgentStateType.ROUTABLE;
+      //   })[0];
+      //   console.log("==> state change " + JSON.stringify(routableState));
+      //   this.pageUrl = "home";
+      //   this.agentObject.setState(routableState, {
+      //     success: function() { 
+      //       console.log("set available success");
+      //       thisKey.agentStatus = "Available"
+      //     },
+      //     failure: function() {
+      //       console.log("set available failed");
+      //     }
+      //   });
+      // } else if(agentState == "OFFLINE") {
+      //   var routableState = this.agentObject.getAgentStates().filter(function(state) {
+      //     return state.type === connect.AgentStateType.OFFLINE;
+      //   })[0];
+      //   this.pageUrl = "home";
+      //   this.agentObject.setState(routableState, {
+      //     success: function() { 
+      //       console.log("set offline success");
+      //       thisKey.agentStatus = "Offline"
+      //       console.log("After change status --> "+ JSON.stringify(thisKey.agentObject.getState()));
+      //     },
+      //     failure: function() {
+      //       console.log("set offline failed");
+      //     }
+      //   });
+      // }
     },
     dialFromHistory(number,name) {
       this.dialedNumber = number;
@@ -594,6 +908,7 @@ export default {
       let thisKey = this;
 
       var callNumber = connect.Endpoint.byPhoneNumber(number);
+      console.log("outbound call " + JSON.stringify(callNumber));
       this.agentObject.connect(callNumber, {
         success: function() {
           console.log("Successfully sent outbound call");
@@ -610,7 +925,8 @@ export default {
       });
   },
   addContact(number) {
-    console.log("Add contact is not available")
+    this.contactForm.contactNumber = number;
+    this.homePageUrl = "addcontact";
   }
   },
    components: {
@@ -619,12 +935,55 @@ export default {
 }
 </script>
 
-<style scoped>
+<style>
 /* #containerDiv {
 		width: 324px; 
 		height: 465px; 
 		overflow: hidden;
 	} */
+
+.my-nav-active {
+  color: #00425f !important;
+  font-weight: bold;
+}
+
+
+
+.tabs .nav-link {
+  color: #6c757d ;
+  padding: 0 !important;
+}
+
+.nav-tabs {
+  border-bottom: none !important;
+}
+
+.nav-tabs .nav-link {
+    border: none !important;
+}
+
+.pre-signin{
+  line-height: 1.5;
+  height: 200px;
+  margin-top:180px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.call-create-ticket{
+  float: right;
+  height: 25px;
+  font-size: 11px;
+  margin-top: 6px;
+  margin-right: 4px;
+}
+
+.call-addnote-ticket {
+  float: right;
+  height: 20px;
+  font-size: 8px;
+  margin-right: 5px;
+}
 
 .main-logo {
   width: 80px;
@@ -654,7 +1013,7 @@ export default {
 
 .tickets-list {
   height: 235px;
-  width: 250px;
+  /* width: 250px; */
   overflow-x: hidden;
   overflow-y: scroll;
 }
@@ -672,6 +1031,7 @@ export default {
 .incoming-ticket-heading {
   margin-top: 10px;
   text-align: left;
+  font-weight: bold;
 }
 
 .call-history-values-right-buttons {
@@ -743,7 +1103,7 @@ export default {
 }
 
   .body-container-content {
-    margin-top: 30px;
+    margin-top: 15px;
   }
 
   .button-row {
@@ -851,5 +1211,6 @@ export default {
     border-right: 1px solid #ccc;
     border-bottom: 1px solid #ccc;
     border-left: 1px solid #ccc;
+    border-top: 1px solid #ccc;
   }
 </style>
