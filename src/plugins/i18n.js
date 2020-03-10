@@ -7,7 +7,13 @@ export const messages = {
         accept: 'Accept',
         decline: 'Decline',
         end_call : 'End Call',
-        open_tickets : 'Open Tickets'
+        open_tickets : 'Open Tickets',
+        back : 'Back',
+        cancel: 'Cancel',
+        new_ticket : 'New Ticket',
+        add_note : 'Add Note',
+        adding : 'Adding',
+        for : 'for'
       },
     ja: {
         call_logs: 'コールログ',
@@ -16,6 +22,12 @@ export const messages = {
         accept: '受け入れる',
         decline: '低下',
         end_call : '通話終了',
-        open_tickets : 'オープンチケット'
+        open_tickets : 'オープンチケット',
+        back : 'バック',
+        cancel: 'キャンセル',
+        new_ticket : '新しいチケット',
+        add_note : 'メモを追加',
+        adding : '追加中',
+        for : 'For'
     }
 };

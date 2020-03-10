@@ -7,7 +7,7 @@
       <b-row class="text-center title-bar">
 
         <b-col cols="3">
-            <img class="main-logo" src="../assets/sandeza.png" alt="Kitten">
+            <img class="main-logo" src="../assets/sandeza.png" alt="main-logo">
         </b-col>
         <b-col cols="7">
           <b-dropdown size="lg"  variant="link" toggle-class="text-decoration-none" no-caret>
@@ -33,7 +33,7 @@
 
         <b-form-select v-model="languageSelected" :options="languageOptions" value-field="value" size="sm" class="mt-3"></b-form-select>
         
-        <b-button pill style="margin-top:30px"  @click="toggleSettings()" >Back</b-button>
+        <b-button pill style="margin-top:30px"  @click="toggleSettings()" > {{ $t("back") }} </b-button>
         <!-- <b-form-group label="Phone Type">
           <b-form-radio-group
             id="select_phone_type"
@@ -92,7 +92,7 @@
         <b-container v-if="homePageUrl == 'countrycode'" class="body-container-content">
           <model-list-select :list="dialableCountries"
                      v-model="selectedCountry"
-                     option-value="code"
+                     option-value="flag"
                      option-text="name">
           </model-list-select>
         </b-container>
@@ -168,7 +168,7 @@
                 <font-awesome-icon class="contact-side-icon" icon="phone" size="sm"/> {{ $t("call_logs") }}
               </template>
               <div class="call-logs-list">
-                <b-row v-for="(call,index) in call_history.filter(call_history => !dialedNumber || call_history.contactNumber.toLowerCase().includes(dialedNumber.toLowerCase()) || call_history.contactName.toLowerCase().includes(dialedNumber.toLowerCase()))" class="call-history-row">
+                <b-row :key= "index" v-for="(call,index) in call_history.filter(call_history => !dialedNumber || call_history.contactNumber.toLowerCase().includes(dialedNumber.toLowerCase()) || call_history.contactName.toLowerCase().includes(dialedNumber.toLowerCase()))" class="call-history-row">
                   <b-col cols="1"><font-awesome-icon style="color:#ccc" icon="user" size="lg"/></b-col>
                   <b-col cols="7">
                     <p @click="openContact(call.contactId)" class="call-history-values call-history-values-name" >{{ call.contactName }}</p>
@@ -186,7 +186,7 @@
                 <font-awesome-icon class="contact-side-icon" icon="address-book" size="sm"/> {{ $t("contacts") }}
               </template>
               <div class="call-logs-list">
-                <b-row v-for="(call,index) in contacts.filter(contacts => !dialedNumber || contacts.contactNumber.toLowerCase().includes(dialedNumber.toLowerCase()) || contacts.contactName.toLowerCase().includes(dialedNumber.toLowerCase()))" class="call-history-row">
+                <b-row :key= "index" v-for="(call,index) in contacts.filter(contacts => !dialedNumber || contacts.contactNumber.toLowerCase().includes(dialedNumber.toLowerCase()) || contacts.contactName.toLowerCase().includes(dialedNumber.toLowerCase()))" class="call-history-row">
                   <b-col cols="1"><font-awesome-icon style="color:#ccc" icon="user" size="lg"/></b-col>
                   <b-col cols="7">
                     <p @click="openContact(call.contactId)" class="call-history-values call-history-values-name" >{{ call.contactName }}</p>
@@ -286,8 +286,8 @@
                     <b-button @click="createTicket()" :disabled="noteCreateDisable" pill size="sm" class="call-create-ticket" variant="primary"><font-awesome-icon v-if=" createTicketButton == 'New Ticket'" icon="plus" size="sm"/> {{ createTicketButton }}</b-button>
                   </b-col>
                 </b-row>
-                <div class="tickets-list">
-                  <b-row v-if="!outBoundCall" v-for="(ticket,index) in  tickets" class="ticket-history-row">
+                <div v-if="!outBoundCall" class="tickets-list">
+                  <b-row :key= "index" v-for="(ticket,index)  in  tickets" class="ticket-history-row">
                     <b-col cols="12">
                       <b-row>
                         <b-col cols="6">
@@ -385,7 +385,7 @@ export default {
       connect_url: '',
       instanceName : '',
       pageUrl: "home",
-      homePageUrl : "calllog", // chg to calllog
+      homePageUrl : "calllog",
       dialedNumbersettings: '',
       outBoundCall: true,
       agentStatus: '',
@@ -515,7 +515,7 @@ export default {
   methods: {
     createNewContact(){
       this.addContactButton = true;
-      this.addContactButtonText = "Adding";
+      this.addContactButtonText = $t("adding");
 
       let passData = {};
       passData.action = "addContact";
@@ -602,8 +602,9 @@ export default {
         var data;
         contact.onConnecting(function() {
           var passData = {};
+          passData.action = "incomingCall";
           console.log("onConnecting---------------"+ JSON.stringify(contact.getAttributes()));
-          passData.action ="incomingCall";
+          
 
           var activeConnection = contact.getActiveInitialConnection();
           var contactId = activeConnection['contactId'];
@@ -618,33 +619,47 @@ export default {
           thisKey.callingNumber = phoneNumber;
           passData.contactNumber = phoneNumber;
           data = contact.getAttributes();
-          //if(data) {
-          var value = JSON.parse(data.customerInfo.value);
-          console.log("==============================>")
-          console.log(value);
-          thisKey.callingName = value.name;
-          thisKey.callingId = value.id;
-          passData.contactName = value.name;
-          passData.contactId = value.id;
-          if(value.tickets){
-            console.log("tickets");
-            thisKey.tickets = value.tickets.openTickets;
-          } else {
-            console.log("no tickets");
-            passData.tickets = [];
-            thisKey.tickets = [];
-          }
+          
+          //if(Object.keys(data).length > 0){
+              try {
+                var value = JSON.parse(data.customerInfo.value);
+                console.log(value);
+                thisKey.callingName = value.name;
+                thisKey.callingId = value.id;
+                passData.contactName = value.name;
+                passData.contactId = value.id;
+                if(value.tickets){
+                  console.log("tickets");
+                  thisKey.tickets = value.tickets.openTickets;
+                } else {
+                  console.log("no tickets");
+                  passData.tickets = [];
+                  thisKey.tickets = [];
+                }
+              } catch(e) {
+                console.log("no customer info --> catch block");
+                thisKey.callingName = "Unknown Caller";
+                thisKey.callingId = "0";
+                passData.contactName = "Unknown Caller";
+                passData.contactId ="0";
+                passData.tickets = [];
+                thisKey.tickets = [];
+              }
           // } else {
+          //   console.log("no contact attrt --> else block");
           //   thisKey.callingName = "Unknown Caller";
+          //   thisKey.callingId = "0";
           //   passData.contactName = "Unknown Caller";
-          //   passData.contactId = "Unknown";
+          //   passData.contactId ="0";
+          //   passData.tickets = [];
+          //   thisKey.tickets = [];
           // }
           
-          console.log("-------------------- pass data " + JSON.stringify(passData));
 
           passData.agentId = thisKey.agentUserName;
           thisKey.call_history.unshift(passData);
           parent.postMessage(passData,"*");
+          console.log("-------------------- pass data " + JSON.stringify(passData));
           thisKey.pageUrl= "call";
           thisKey.outBoundCall = false;
           thisKey.callStatus = "Incoming";
@@ -698,8 +713,8 @@ export default {
     },
     createNote(ticketId){
       this.addNoteFor = ticketId;
-      this.editorHeading = "For #" + ticketId;
-      this.edittorButtonName = "Add Note";
+      this.editorHeading = $t("for") + " #" + ticketId;
+      this.edittorButtonName = $t("add_note");
       this.editor = true;
     },
     createNoteSubmit(){

@@ -231,7 +231,7 @@ export function dialableCountries(countryCodes) {
 
     let filteredList = [];
     for(let i=0;i <countryCodes.length;i++ ) {
-        if(allCountryCodes[countryCodes[i]] != undefined && countryCodes[i] != "ca") {
+        if(allCountryCodes[countryCodes[i]] != undefined ) {
             filteredList.push(allCountryCodes[countryCodes[i]]);
         }
     }
