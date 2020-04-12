@@ -95,6 +95,7 @@
                      option-value="flag"
                      option-text="name">
           </model-list-select>
+          <b-button @click="backToHome()" style="margin-top:10px" pill size="sm">Back</b-button>
         </b-container>
         
         <!-- dialpad block -->
@@ -260,33 +261,36 @@
                 </b-button>
             </div>
             <div v-else-if="callStatus == 'Connected' || callStatus == 'Muted' || callStatus == 'OnHold' || callStatus == 'Calling'" class="call-handle-buttons-container">
-                <!-- <b-button size="sm" @click="onHoldCall()" class="call-handle-buttons after-call-handle-buttons" variant="secondary">
-                  <font-awesome-icon  icon="pause" size="sm"/>   {{callStatus == "OnHold" ? "UnHold" : "Hold"}}
-                </b-button>
-                <b-button size="sm" @click="onMuteCall()" class="call-handle-buttons after-call-handle-buttons" variant="secondary">
-                  <font-awesome-icon  icon="microphone-alt-slash" size="sm"/>   {{callStatus == "Muted" ? "Un Mute" : "Mute"}}
-                </b-button>
-                <b-button size="sm" @click="onDialPadCall()" class="call-handle-buttons after-call-handle-buttons" variant="secondary">
-                  <font-awesome-icon  icon="th" size="sm"/>   Dial
-                </b-button>
-                <b-button size="sm" @click="onTransferCall()" class="call-handle-buttons after-call-handle-buttons" variant="secondary">
-                  <font-awesome-icon  icon="random" size="sm"/>   Transfer
+                <!-- <b-button size="sm" @click="onHoldCall()" pill class="call-handle-buttons" variant="secondary">
+                  <font-awesome-icon  icon="pause" size="sm"/>
                 </b-button> -->
-                <b-button block @click="onEndCall()" class="call-handle-button-end" size="sm" variant="danger">
+                <b-button size="sm" @click="onMuteCall()" pill class="call-handle-buttons" variant="secondary">
+                  <font-awesome-icon  icon="microphone-alt-slash" size="sm"/> 
+                </b-button>
+                <!-- <b-button size="sm" @click="onDialPadCall()" pill class="call-handle-buttons" variant="secondary">
+                  <font-awesome-icon  icon="th" size="sm"/> 
+                </b-button>
+                <b-button size="sm" @click="onTransferCall()" pill class="call-handle-buttons" variant="secondary">
+                  <font-awesome-icon  icon="random" size="sm"/>
+                </b-button> -->
+                <b-button @click="onEndCall()" class="call-handle-buttons" size="sm" variant="danger">
                   <font-awesome-icon  icon="phone-slash" size="sm"/>   {{ $t('end_call') }}
                 </b-button>
             </div>
             <div style="width: 325px;margin-top: 10px;" v-if="callStatus == 'Incoming' || callStatus == 'Connecting' || callStatus == 'Connected' || callStatus == 'Muted' || callStatus == 'OnHold'">
+              
               <div v-if="!editor">
                 <b-row v-if="!outBoundCall" >
                   <b-col cols="6">
                     <h6  class="incoming-ticket-heading">{{ $t('open_tickets') }}</h6>
                   </b-col>
                   <b-col cols="6">
-                    <b-button @click="createTicket()" :disabled="noteCreateDisable" pill size="sm" class="call-create-ticket" variant="primary"><font-awesome-icon v-if=" createTicketButton == 'New Ticket'" icon="plus" size="sm"/> {{ createTicketButton }}</b-button>
+                    <!-- <b-button  title="Open new ticket page" @click="openCreateTicket()" pill size="sm" class="call-create-ticket" variant="outline-primary"><font-awesome-icon icon="external-link-alt" size="sm"/></b-button> -->
+                    <b-button @click="createTicket()" :disabled="noteCreateDisable" pill size="sm" class="call-create-ticket" variant="primary"><font-awesome-icon v-if=" createTicketButton == 'New Ticket'" icon="plus" size="sm"/> {{ createTicketButton }}</b-button>   
                   </b-col>
                 </b-row>
                 <div v-if="!outBoundCall" class="tickets-list">
+                  <div v-if="additionalFields" class="additional-fields"> <b>For : </b>{{ this.additionalFields }}</div>
                   <b-row :key= "index" v-for="(ticket,index)  in  tickets" class="ticket-history-row">
                     <b-col cols="12">
                       <b-row>
@@ -370,8 +374,10 @@ export default {
     },
   data() {
     return {
+      additionalFields: false,
       languageSelected : 'en' ,
       contactTabSelected: false,
+      countryCodefromDB: false,
       languageOptions: [
         { value: 'en', text: 'English' },
         { value: 'ja', text: 'Japanese' }
@@ -386,7 +392,7 @@ export default {
       loggedin: false,
       connect_url: '',
       instanceName : '',
-      pageUrl: "home",
+      pageUrl: "home", //home
       homePageUrl : "calllog",
       dialedNumbersettings: '',
       outBoundCall: false,
@@ -396,7 +402,7 @@ export default {
       toggle_dial_pad: false,
       toggle_country_code : false,
       toggle_country_code_settings: false,
-      toggle_call_block: false,
+      toggle_call_block: false, //false
       selected_phone_type: 1,
       agentStates: [],
       phoneTypesOption: [
@@ -431,13 +437,15 @@ export default {
         // { "contactId" : "2" , "contactName" : "Tom" , "contactNumber" : "+18333537852"},
         // { "contactId" : "2" , "contactName" : "Steve" , "contactNumber" : "+18444444852"}
       ],
-      tickets: [ { "id" : "18" , "subject" : "this is subject of the sample aws connect ticket generated by aws connect phone sandeza" },{ "id" : "19" , "subject" : "this is subject of the sample aws connect ticket generated by aws connect phone sandeza" },{ "id" : "20" , "subject" : "this is subject of the sample aws connect ticket generated by aws connect phone sandeza" },{ "id" : "21" , "subject" : "this is subject of the sample aws connect ticket generated by aws connect phone sandeza" },{ "id" : "345678" , "subject" : "this is subject of the sample aws connect ticket generated by aws connect phone sandeza" },{ "id" : "7654765" , "subject" : "this is subject of the sample aws connect ticket generated by aws connect phone sandeza" }],
+      tickets: [ 
+        // { "id" : "18" , "subject" : "this is subject of the sample aws connect ticket generated by aws connect phone sandeza" },{ "id" : "19" , "subject" : "this is subject of the sample aws connect ticket generated by aws connect phone sandeza" },{ "id" : "20" , "subject" : "this is subject of the sample aws connect ticket generated by aws connect phone sandeza" },{ "id" : "21" , "subject" : "this is subject of the sample aws connect ticket generated by aws connect phone sandeza" },{ "id" : "345678" , "subject" : "this is subject of the sample aws connect ticket generated by aws connect phone sandeza" },{ "id" : "7654765" , "subject" : "this is subject of the sample aws connect ticket generated by aws connect phone sandeza" }
+      ],
       selectedCountry: { code: '1', flag: 'flag-icon-us' },
       selectedCountrySettings: { code: '1', flag: 'flag-icon-us' },
       onAccepted: true,
       onHold: false,
       onMute: false,
-      callStatus: "Connected",
+      callStatus: "Incoming", //Incoming
       callingName : "Unknown Caller",
       callingId: "",
       callingNumber: "+1 234567890",
@@ -464,7 +472,7 @@ export default {
     let uri = window.location.search.substring(1); 
     let params = new URLSearchParams(uri);
     this.connect_url = params.get("connect_url");
-    console.log("URL params url ==> " +params.get("connect_url"));
+    //console.log("URL params url ==> " +params.get("connect_url"));
   },
   mounted() {
     this.handleLogin();
@@ -485,7 +493,7 @@ export default {
       passData.action = "languageChange";
       passData.agentId = this.agentUserName;
       passData.language = this.languageSelected;
-      console.log("----> passing contact "+ JSON.stringify(passData));
+      console.log("Language Changed to "+ this.languageSelected);
       parent.postMessage(passData,"*");
     },
     newCreatedTicket: function() {
@@ -514,7 +522,12 @@ export default {
       }
     },
     selectedCountry: function () {
-      this.homePageUrl = this.homePageUrl == "countrycode" ? "calllog" : "countrycode";
+        var passData = {};
+        passData.action = "countryChange";
+        passData.agentId = this.agentUserName;
+        passData.countrySelected = JSON.stringify(this.selectedCountry);
+        console.log("Dialing country changed");
+        parent.postMessage(passData,"*");
     },
     selectedCountrySettings: function () {
       this.toggle_country_code_settings = !this.toggle_country_code_settings;
@@ -526,8 +539,14 @@ export default {
     }
   },
   methods: {
-    testMethod(){
-      console.log('clicked');
+    openCreateTicket(){
+      let passData = {};
+      passData.action = "openNewTicket";
+      parent.postMessage(passData,"*");
+      console.log("Open New Ticket contact called");
+    },
+    backToHome() {
+        this.homePageUrl = this.homePageUrl == "countrycode" ? "calllog" : "countrycode";
     },
     createNewContact(){
       this.addContactButton = true;
@@ -539,7 +558,7 @@ export default {
       passData.contactName = this.contactForm.contactName;
       passData.contactNumber = this.contactForm.contactNumber;
       parent.postMessage(passData,"*");
-      console.log("create contact " + JSON.stringify(passData));
+      console.log("Create new contact triggered");
       
     },
     cancelCreateNewContact(){
@@ -553,7 +572,7 @@ export default {
 
        window.addEventListener('message', function(event) {
         if(event.data.action == "calllogs"){
-          console.log("--> recived on connect app <--" + JSON.stringify(event.data));
+          //console.log("--> recived on connect app <--" + JSON.stringify(event.data));
           if(event.data.callData != null) {
             let eventData = event.data.callData;
             let eventDataRev = eventData.reverse()
@@ -561,20 +580,23 @@ export default {
           }
           thisKey.contacts = event.data.contactList;
           thisKey.languageSelected = event.data.language;
+          thisKey.selectedCountry = JSON.parse(event.data.countrySelected);
+          thisKey.loggedin = true;
+          //thisKey.homePageUrl = 'calllog';
         } else if(event.data.action == "createTicketSuccess"){
-          console.log("--> recived created ticket id on connect app <--" + JSON.stringify(event.data.ticket_id));
+          //console.log("--> recived created ticket id on connect app <--" + JSON.stringify(event.data.ticket_id));
           thisKey.newCreatedTicket = event.data.ticket_id;
         } else if(event.data.action == "createNoteSuccess"){
-          console.log("--> recived created note status on connect app <--" + JSON.stringify(event.data.status));
+         // console.log("--> recived created note status on connect app <--" + JSON.stringify(event.data.status));
           thisKey.newNoteCreated = event.data.status;
         } else if(event.data.action == "createContactSuccess"){
-          console.log("--> recived created contact status on connect app <--" + JSON.stringify(event.data.status));
+          //console.log("--> recived created contact status on connect app <--" + JSON.stringify(event.data.status));
           thisKey.newContactCreated = event.data.status;
         } else if(event.data.action == "makeOutboundCall"){
-          console.log("--> recived make outbound call on connect app <--" + JSON.stringify(event.data));
-          this.dialFromHistory(event.data.name,event.data.number)
+         // console.log("--> recived make outbound call on connect app <--" + JSON.stringify(event.data));
+         // this.dialFromHistory(event.data.name,event.data.number)
         } else if(event.data.action == "searchResult"){
-          console.log("--> recived search result on connect app <--" + JSON.stringify(event.data));
+          //console.log("--> recived search result on connect app <--" + JSON.stringify(event.data));
           thisKey.contacts = event.data.searchResult;
         }
       } , false);
@@ -609,12 +631,13 @@ export default {
       eventBus.subscribe(connect.AgentEvents.INIT, function () {
         var agentConfig = thisKey.agentObject.getConfiguration();
         thisKey.agentUserName = agentConfig.username;
-        thisKey.loggedin = true;
+        thisKey.loggedin = true; // remove
+        // moving to dataload thisKey.loggedin = true;
         let passData = {};
         passData.action = "agentConnected";
         passData.agentId = agentConfig.username;
         parent.postMessage(passData,"*");
-        console.log("-------------------------------connected "+ thisKey.agentUserName);
+        console.log("Connected Agent -- > "+ thisKey.agentUserName);
       });
       
       connect.contact(function(contact) {
@@ -640,25 +663,30 @@ export default {
             thisKey.callingNumber = phoneNumber;
             passData.contactNumber = phoneNumber;
             data = contact.getAttributes();
+
+            if(data.callFor){
+              thisKey.additionalFields = data.callFor.value;
+            }
             
             //if(Object.keys(data).length > 0){
                 try {
                   var value = JSON.parse(data.customerInfo.value);
                   console.log(value);
-                  thisKey.callingName = value.name;
+                  console.log(value.hasOwnProperty("name"))
+                  thisKey.callingName = value.hasOwnProperty("name") ?  value.name : "Unknown Caller";
                   thisKey.callingId = value.id;
-                  passData.contactName = value.name;
+                  passData.contactName = value.hasOwnProperty("name") ?  value.name : "Unknown Caller";
                   passData.contactId = value.id;
                   if(value.tickets){
-                    console.log("tickets");
+                    console.log("tickets received");
                     thisKey.tickets = value.tickets.openTickets;
                   } else {
-                    console.log("no tickets");
+                    console.log("no tickets received");
                     passData.tickets = [];
                     thisKey.tickets = [];
                   }
                 } catch(e) {
-                  console.log("no customer info --> catch block");
+                  console.log("no customer info");
                   thisKey.callingName = "Unknown Caller";
                   thisKey.callingId = "0";
                   passData.contactName = "Unknown Caller";
@@ -680,7 +708,7 @@ export default {
             passData.agentId = thisKey.agentUserName;
             thisKey.call_history.unshift(passData);
             parent.postMessage(passData,"*");
-            console.log("-------------------- pass data " + JSON.stringify(passData));
+            //console.log("-------------------- pass data " + JSON.stringify(passData));
             thisKey.pageUrl= "call";
             //thisKey.outBoundCall = false;
             thisKey.callStatus = "Incoming";
@@ -690,19 +718,19 @@ export default {
         
         contact.onAccepted(function() {
           thisKey.callStatus = "Connecting";
-          console.log("on accepted---------------");console.log("INFO Agent "+name+" accepted Call from "+customerNo+ " with case id "+data.key.value);
+         // console.log("on accepted---------------");console.log("INFO Agent "+name+" accepted Call from "+customerNo+ " with case id "+data.key.value);
         });
         
         contact.onConnected(function() {
           thisKey.callStatus = "Connected";
-          console.log("on connected---------------");
+         // console.log("on connected---------------");
         });
         
         contact.onEnded(function() {
           if(!thisKey.setAvailableTrigger) {
-            console.log("normal callend ----> setavailable triggered ")
+            //console.log("normal callend ----> setavailable triggered ")
             if(thisKey.callStatus == "Calling"){
-              console.log("on Ended before calling------------------")
+             // console.log("on Ended before calling------------------")
             } else {
 
               if(!thisKey.outBoundCall) {
@@ -714,15 +742,15 @@ export default {
                 parent.postMessage(passData,"*");
               }
               thisKey.setAvailable();
-              console.log("$$$$$$$ "+ JSON.stringify(thisKey.agentObject.getState()));
+             // console.log("$$$$$$$ "+ JSON.stringify(thisKey.agentObject.getState()));
               thisKey.callStatus = "Ended";
               thisKey.dialedNumber = ''
               thisKey.toggle_call_block = false;
               thisKey.outBoundCall = false;
-              console.log("on ended---------------");
+             // console.log("on ended---------------");
             }
           } else {
-            console.log("set avilable call end ----> set to false")
+           // console.log("set avilable call end ----> set to false")
             thisKey.setAvailableTrigger = false;
           }
         });
@@ -741,7 +769,7 @@ export default {
       passData.contactId = this.callingId;
       passData.phoneNumber = this.callingNumber;
       parent.postMessage(passData,"*");
-      console.log("create ticket " + JSON.stringify(passData));
+     // console.log("create ticket " + JSON.stringify(passData));
     },
     createNote(ticketId){
       this.addNoteFor = ticketId;
@@ -757,7 +785,7 @@ export default {
       passData.ticketId = this.addNoteFor;
       passData.note = this.editorText;
       parent.postMessage(passData,"*");
-      console.log("create note " + JSON.stringify(passData));
+     // console.log("create note " + JSON.stringify(passData));
     },
     setAvailable(){
       console.log("set available triggered")
@@ -785,14 +813,14 @@ export default {
       var passData = {};
       passData.action = "openContact";
       passData.contactId = contactId;
-      console.log("----> passing contact "+ JSON.stringify(passData));
+      //console.log("----> passing contact "+ JSON.stringify(passData));
       parent.postMessage(passData,"*");
     },
     openTicket(ticketId){
       var passData = {};
       passData.action = "openTicket";
       passData.ticketId = ticketId;
-      console.log("----> passing ticket "+ JSON.stringify(passData));
+      //console.log("----> passing ticket "+ JSON.stringify(passData));
       parent.postMessage(passData,"*");
     },
     onSaveDeskPhone(){
@@ -814,7 +842,7 @@ export default {
       this.callStatus = "Connecting";
       this.callStartTime = new Date();
       
-        console.log("-----------------accept Clicked");
+        //console.log("-----------------accept Clicked");
         this.contactObject.accept({
           success: function(data) {
             console.log("Successfully answered call.");
@@ -833,7 +861,13 @@ export default {
     },
     onMuteCall(){
       this.onMute = !this.onMute;
-      this.callStatus = this.onMute ? "Muted" : "Connected"
+      if(this.onMute){
+        this.callStatus = "Muted";
+        this.agentObject.mute();
+      } else {
+        this.callStatus = "Connected";
+        this.agentObject.unmute();
+      }
     },
     onEndCall(){
       console.log("End Button Clicked");
@@ -996,7 +1030,10 @@ export default {
   font-weight: bold;
 }
 
-
+.additional-fields {
+  font-size: 12px;
+  text-align: left;
+}
 
 .tabs .nav-link {
   color: #6c757d ;
