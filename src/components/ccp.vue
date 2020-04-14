@@ -7,7 +7,7 @@
       <b-row class="text-center title-bar">
 
         <b-col cols="3">
-            <img class="main-logo" src="../assets/sandeza.png" alt="main-logo">
+            <!-- <img class="main-logo" src="../assets/sandeza.png" alt="main-logo"> -->
         </b-col>
         <b-col cols="7">
           <b-dropdown size="lg"  variant="link" toggle-class="text-decoration-none" no-caret>
@@ -248,9 +248,9 @@
       <b-container v-show="toggle_call_block" class="body-container call-block">
         <div class="call-handler">
           <div class="call-handler-contents">
-            <h6>{{ callStatus }}</h6>
-            <h5>{{ callingName }}</h5>
-            <h6>{{callingNumber}}</h6>
+            <h6 v-if="callStatus != 'Conference'">{{ callStatus }}</h6>
+            <h5 v-if="callStatus != 'Conference'">{{ callingName }}</h5>
+            <h6 v-if="callStatus != 'Conference'">{{callingNumber}}</h6>
             <!-- <h6 v-if="callStatus == 'Connected' || callStatus == 'Muted' || callStatus == 'OnHold'">00:00</h6> -->
             <div v-if="callStatus == 'Incoming' || callStatus == 'Connecting' || callStatus == 'Calling'" class="call-handle-buttons-container">
                 <b-button v-if="!outBoundCall" size="sm" pill @click="onAcceptedCall()" class="call-handle-buttons" variant="success">
@@ -260,24 +260,66 @@
                   <font-awesome-icon  icon="phone-slash" size="sm"/>   {{ $t('decline') }}
                 </b-button>
             </div>
-            <div v-else-if="callStatus == 'Connected' || callStatus == 'Muted' || callStatus == 'OnHold' || callStatus == 'Calling'" class="call-handle-buttons-container">
-                <!-- <b-button size="sm" @click="onHoldCall()" pill class="call-handle-buttons" variant="secondary">
+            <div v-else-if="callStatus == 'Connected' || callStatus == 'Muted' || callStatus == 'On Hold' || callStatus == 'Calling'" class="call-handle-buttons-container">
+                <b-button size="sm" @click="onHoldCall()" pill class="call-control-buttons" variant="secondary">
                   <font-awesome-icon  icon="pause" size="sm"/>
-                </b-button> -->
-                <b-button size="sm" @click="onMuteCall()" pill class="call-handle-buttons" variant="secondary">
+                </b-button>
+                <b-button size="sm" @click="onMuteCall()" pill class="call-control-buttons" variant="secondary">
                   <font-awesome-icon  icon="microphone-alt-slash" size="sm"/> 
                 </b-button>
-                <!-- <b-button size="sm" @click="onDialPadCall()" pill class="call-handle-buttons" variant="secondary">
+                <b-button size="sm" @click="onDialPadCall()" pill class="call-control-buttons" variant="secondary">
                   <font-awesome-icon  icon="th" size="sm"/> 
                 </b-button>
-                <b-button size="sm" @click="onTransferCall()" pill class="call-handle-buttons" variant="secondary">
+                <b-button size="sm" @click="onTransferCall()" pill class="call-control-buttons" variant="secondary">
                   <font-awesome-icon  icon="random" size="sm"/>
-                </b-button> -->
+                </b-button>
                 <b-button @click="onEndCall()" class="call-handle-buttons" size="sm" variant="danger">
                   <font-awesome-icon  icon="phone-slash" size="sm"/>   {{ $t('end_call') }}
                 </b-button>
             </div>
-            <div style="width: 325px;margin-top: 10px;" v-if="callStatus == 'Incoming' || callStatus == 'Connecting' || callStatus == 'Connected' || callStatus == 'Muted' || callStatus == 'OnHold'">
+            <div v-else-if="callStatus == 'Conference'" class="call-handle-buttons-container">
+              <b-row class="call-history-row">
+                <b-col cols="9">
+                  <p class="call-history-values call-history-values-name" > <b> ( {{ confCall.callerOneStatus }} ) </b> {{ callingName }}</p>
+                  </b-col>
+                <b-col cols="3" class="text-left">
+                  <font-awesome-icon class="contact-side-icon" style="color:#ccc;cursor:pointer" v-if="(confCall.callerOneStatus != 'On Hold') && (confCall.callerOneStatus != 'On Hold' && confCall.callerTwoStatus != 'On Hold')" @click="onHoldConf('one')" icon="pause" size="sm"/>
+                  <font-awesome-icon class="contact-side-icon" style="color:#ccc;cursor:pointer" @click="onEndCallConf('one')" icon="phone-slash" size="sm"/>
+                </b-col>
+              </b-row>
+
+              <b-row class="call-history-row">
+                <b-col cols="9">
+                  <p class="call-history-values call-history-values-name" > <b> ( {{ confCall.callerTwoStatus }} ) </b> {{ transferName }}</p>
+                  </b-col>
+                <b-col cols="3" class="text-left">
+                  <font-awesome-icon class="contact-side-icon" style="color:#ccc;cursor:pointer" v-if="(confCall.callerTwoStatus != 'On Hold') && (confCall.callerOneStatus != 'On Hold' && confCall.callerTwoStatus != 'On Hold')" @click="onHoldConf('two')"  icon="pause" size="sm"/>
+                  <font-awesome-icon class="contact-side-icon" style="color:#ccc;cursor:pointer" @click="onEndCallConf('two')" icon="phone-slash" size="sm"/>
+                </b-col>
+              </b-row>
+
+              <div class="call-handle-buttons-container">
+                <b-button size="sm"  v-if="confCall.callerOneStatus != 'On Hold' || confCall.callerTwoStatus != 'On Hold'" @click="onHoldAll()" pill class="call-control-buttons" variant="secondary">
+                  <font-awesome-icon  icon="pause" size="sm"/>
+                </b-button>
+                <b-button size="sm" v-if="confCall.callerOneStatus == 'On Hold' && confCall.callerTwoStatus == 'On Hold'"  @click="onResumeConf()" pill class="call-control-buttons" variant="secondary">
+                  <font-awesome-icon  icon="play" size="sm"/>
+                </b-button>
+                <b-button size="sm" @click="onMuteConf()" pill class="call-control-buttons" variant="secondary">
+                  <font-awesome-icon  icon="microphone-alt-slash" size="sm"/> 
+                </b-button>
+                <b-button size="sm" v-if="confCall.callerOneStatus != 'Joined' || confCall.callerTwoStatus != 'Joined'" @click="onJoinCall()" pill class="call-control-buttons" variant="secondary">
+                  <font-awesome-icon  icon="compress" size="sm"/> 
+                </b-button>
+                <b-button size="sm" v-if="(confCall.callerOneStatus != 'On Hold' && confCall.callerTwoStatus != 'On Hold') || (confCall.callerOneStatus != 'Joined' && confCall.callerTwoStatus != 'Joined')" @click="onSwapCall()" pill class="call-control-buttons" variant="secondary">
+                  <font-awesome-icon  icon="exchange-alt" size="sm"/>
+                </b-button>
+                <b-button @click="onLeaveCall()" class="call-handle-buttons" size="sm" variant="danger">
+                  <font-awesome-icon  icon="phone-slash" size="sm"/>   {{ $t('leave_call') }}
+                </b-button>
+              </div>
+            </div>  
+            <div style="width: 325px;margin-top: 10px;" v-if="callStatus == 'Incoming' || callStatus == 'Conference' || callStatus == 'Connecting' || callStatus == 'Connected' || callStatus == 'Muted' || callStatus == 'On Hold'">
               
               <div v-if="!editor">
                 <b-row v-if="!outBoundCall" >
@@ -330,6 +372,29 @@
           </div>
         </div>
       </b-container>
+
+
+    <!-- Quick Connects view -->
+      <b-container v-show="toggle_quick_connect" class="body-container">
+
+        <div class="quick-connects-head">
+          <font-awesome-icon @click="backToCall()" class="quick-connects-close-icon" icon="times" size="sm"/>
+          <span class="quick-connects-title" > Quick connects </span>
+        </div>
+
+        <div class="quick-connects-body">
+        <b-row :key= "index" v-for="(contact,index) in quickconnects">
+          <b-col cols="9">
+            <p class="quick-connects-name">{{ contact.name }} </p>
+          </b-col>
+          <b-col cols="3" class="text-left">
+            <font-awesome-icon class="contact-side-icon" style="color:#ccc;cursor:pointer" @click="callTransfer(contact.name,contact)" icon="phone" size="sm"/>
+          </b-col>
+        </b-row>
+        </div>
+
+      </b-container> 
+
     </b-container>
 
     <b-container v-if="!loggedin" class="bv-example-row pre-signin">
@@ -374,6 +439,9 @@ export default {
     },
   data() {
     return {
+      transferName : '',
+      transferNumber: '',
+      toggle_transfer: false,
       additionalFields: false,
       languageSelected : 'en' ,
       contactTabSelected: false,
@@ -403,6 +471,7 @@ export default {
       toggle_country_code : false,
       toggle_country_code_settings: false,
       toggle_call_block: false, //false
+      toggle_quick_connect : false,
       selected_phone_type: 1,
       agentStates: [],
       phoneTypesOption: [
@@ -438,14 +507,14 @@ export default {
         // { "contactId" : "2" , "contactName" : "Steve" , "contactNumber" : "+18444444852"}
       ],
       tickets: [ 
-        // { "id" : "18" , "subject" : "this is subject of the sample aws connect ticket generated by aws connect phone sandeza" },{ "id" : "19" , "subject" : "this is subject of the sample aws connect ticket generated by aws connect phone sandeza" },{ "id" : "20" , "subject" : "this is subject of the sample aws connect ticket generated by aws connect phone sandeza" },{ "id" : "21" , "subject" : "this is subject of the sample aws connect ticket generated by aws connect phone sandeza" },{ "id" : "345678" , "subject" : "this is subject of the sample aws connect ticket generated by aws connect phone sandeza" },{ "id" : "7654765" , "subject" : "this is subject of the sample aws connect ticket generated by aws connect phone sandeza" }
+         { "id" : "18" , "subject" : "this is subject of the sample aws connect ticket generated by aws connect phone sandeza" },{ "id" : "19" , "subject" : "this is subject of the sample aws connect ticket generated by aws connect phone sandeza" },{ "id" : "20" , "subject" : "this is subject of the sample aws connect ticket generated by aws connect phone sandeza" },{ "id" : "21" , "subject" : "this is subject of the sample aws connect ticket generated by aws connect phone sandeza" },{ "id" : "345678" , "subject" : "this is subject of the sample aws connect ticket generated by aws connect phone sandeza" },{ "id" : "7654765" , "subject" : "this is subject of the sample aws connect ticket generated by aws connect phone sandeza" }
       ],
       selectedCountry: { code: '1', flag: 'flag-icon-us' },
       selectedCountrySettings: { code: '1', flag: 'flag-icon-us' },
       onAccepted: true,
       onHold: false,
       onMute: false,
-      callStatus: "Incoming", //Incoming
+      callStatus: "Connected", //Incoming
       callingName : "Unknown Caller",
       callingId: "",
       callingNumber: "+1 234567890",
@@ -465,7 +534,12 @@ export default {
       addContactButton: false,
       addContactButtonText: "Save Contact",
       newContactCreated:'',
-      setAvailableTrigger: false
+      setAvailableTrigger: false,
+      quickconnects: [],
+      confCall : {
+        callerOneStatus : 'Hold',
+        callerTwoStatus : 'Hold'
+      }
     }
   },
   created(){
@@ -539,6 +613,221 @@ export default {
     }
   },
   methods: {
+
+    onHoldAll(){
+      let thisKey = this;
+      let contact = this.contactObject;
+
+      try {
+        contact.getInitialConnection().hold({
+          success: function() { 
+            thisKey.confCall.callerOneStatus = "On Hold";
+            console.log("changed caller one to hold" + contact.getInitialConnection().isOnHold());
+          },
+          failure: function() { 
+            //thisKey.confCall.callerOneStatus = thisKey.confCall.callerOneStatus == "Joined" ? "Joined" : "Connected";
+            console.log("changed caller one to hold" + contact.getInitialConnection().isOnHold());
+          }
+        });
+      } catch (e) {
+        console.log("changed iitial caller one to hold failed")
+      }
+      try {
+        contact.getSingleActiveThirdPartyConnection().hold({
+          success: function() { 
+            thisKey.confCall.callerTwoStatus = "On Hold" ;
+            console.log("changed caller two to hold" + contact.getSingleActiveThirdPartyConnection().isOnHold());
+          },
+          failure: function() { 
+           // thisKey.confCall.callerTwoStatus = contact.getSingleActiveThirdPartyConnection().isOnHold() ? "On Hold" : "Connected" ;
+            console.log("changed caller two to hold" + contact.getSingleActiveThirdPartyConnection().isOnHold());
+          }
+        });
+      } catch (e) {
+        console.log("changed iitial caller one to hold failed")
+      }
+    },
+     onEndCallConf(caller){
+      let thisKey = this;
+      let contact = this.contactObject;
+      if(caller == "one") {
+        try {
+          contact.getInitialConnection().destroy({
+            success: function() {
+              thisKey.callStatus = "Connected";
+              thisKey.callingName = thisKey.transferName;
+              thisKey.callingNumber = thisKey.transferNumber;
+              console.log("Ended Initial");
+            },
+            failure: function() { 
+              console.log("Ended Initial failed");
+            }
+          });
+        } catch (e) {
+          console.log("Ended Initial failed")
+        }
+      } else {
+        try {
+          contact.getSingleActiveThirdPartyConnection().destroy({
+            success: function() { 
+              thisKey.callStatus = "Connected";
+              console.log("Ended external success");
+            },
+            failure: function() { 
+              console.log("Ended external failed");
+            }
+          });
+        } catch (e) {
+          console.log("Ended external failed");
+        }
+      }
+    },
+    onResumeConf(caller){
+      let thisKey = this;
+      let contact = this.contactObject;
+      thisKey.confCall.callerOneStatus = "Connected";
+      thisKey.confCall.callerTwoStatus = "Connected";
+      if(caller == "one") {
+        try {
+          contact.getInitialConnection().resume({
+            success: function() { 
+              thisKey.confCall.callerOneStatus = "Connected";
+              console.log("changed caller one to hold" + contact.getInitialConnection().isOnHold());
+            },
+            failure: function() { 
+              //thisKey.confCall.callerOneStatus = thisKey.confCall.callerOneStatus == "Joined" ? "Joined" : "Connected";
+              console.log("changed caller one to hold" + contact.getInitialConnection().isOnHold());
+            }
+          });
+        } catch (e) {
+          console.log("changed iitial caller one to hold failed")
+        }
+      } else {
+        try {
+          contact.getSingleActiveThirdPartyConnection().resume({
+            success: function() { 
+              thisKey.confCall.callerTwoStatus = "Connected" ;
+              console.log("changed caller two to hold" + contact.getSingleActiveThirdPartyConnection().isOnHold());
+            },
+            failure: function() { 
+              //thisKey.confCall.callerTwoStatus = contact.getSingleActiveThirdPartyConnection().isOnHold() ? "On Hold" : "Connected" ;
+              console.log("changed caller two to hold" + contact.getSingleActiveThirdPartyConnection().isOnHold());
+            }
+          });
+        } catch (e) {
+          console.log("changed iitial caller one to hold failed")
+        }
+      }
+    },
+    onHoldConf(caller){
+      let thisKey = this;
+      let contact = this.contactObject;
+      if(caller == "one") {
+        try {
+          contact.getInitialConnection().hold({
+            success: function() { 
+              thisKey.confCall.callerOneStatus = "On Hold";
+              console.log("changed caller one to hold" + contact.getInitialConnection().isOnHold());
+            },
+            failure: function() { 
+              //thisKey.confCall.callerOneStatus = thisKey.confCall.callerOneStatus == "Joined" ? "Joined" : "Connected";
+              console.log("changed caller one to hold" + contact.getInitialConnection().isOnHold());
+            }
+          });
+        } catch (e) {
+          console.log("changed iitial caller one to hold failed")
+        }
+      } else {
+        try {
+          contact.getSingleActiveThirdPartyConnection().hold({
+            success: function() { 
+              thisKey.confCall.callerTwoStatus = "On Hold" ;
+              console.log("changed caller two to hold" + contact.getSingleActiveThirdPartyConnection().isOnHold());
+            },
+            failure: function() { 
+              //thisKey.confCall.callerTwoStatus = contact.getSingleActiveThirdPartyConnection().isOnHold() ? "On Hold" : "Connected" ;
+              console.log("changed caller two to hold" + contact.getSingleActiveThirdPartyConnection().isOnHold());
+            }
+          });
+        } catch (e) {
+          console.log("changed iitial caller one to hold failed")
+        }
+      }
+    },
+    onSwapCall(){
+      let thisKey = this;
+      let contact = this.contactObject;
+      contact.toggleActiveConnections({
+        success: function() { 
+            thisKey.confCall.callerOneStatus = contact.getInitialConnection().isOnHold() ?  "Connected" : "On Hold" ;
+            thisKey.confCall.callerTwoStatus = contact.getSingleActiveThirdPartyConnection().isOnHold() ? "Connected" : "On Hold" ;
+         },
+        failure: function() {
+          thisKey.confCall.callerOneStatus = contact.getInitialConnection().isOnHold() ? "Connected" : "On Hold" ;
+          thisKey.confCall.callerTwoStatus = contact.getSingleActiveThirdPartyConnection().isOnHold() ? "Connected" : "On Hold" ;
+          console.log("toggle fail");
+        }
+      });
+    },
+    onMuteConf(){
+      if(this.onMute){
+        this.agentObject.mute();
+      } else {
+        this.agentObject.unmute();
+      }
+    },
+    onJoinCall(){
+      let thisKey = this;
+      let contact = this.contactObject;
+
+      contact.conferenceConnections({
+        success: function() { 
+          console.log("Joined call")
+          thisKey.confCall.callerOneStatus = "Joined"
+          thisKey.confCall.callerTwoStatus = "Joined"
+         },
+        failure: function(err) {
+            console.log("Join call failed");
+            console.log(err);
+         }
+      });
+    },
+    onLeaveCall() {
+      let contact = this.contactObject;
+      contact.getAgentConnection().destroy();
+    },
+    callTransfer(name,endpoint){
+      console.log("Call transfer Initiated to " + name);
+      let thisKey = this;
+      this.transferName = name;
+      this.transferNumber = endpoint.type;
+
+      this.agentObject.getContacts(lily.ContactType.VOICE)[0].addConnection(endpoint, {
+        success: function(data) {
+          thisKey.toggle_quick_connect = false;
+          thisKey.callStatus = "Conference";
+          thisKey.toggle_call_block = true;
+          thisKey.confCall['callerOneStatus'] = "On Hold"
+          thisKey.confCall['callerTwoStatus'] = "Connecting"
+          console.log("transfer success");
+          console.log(data);
+         // thisKey.checkTransferStatus();
+        },
+        failure: function(data) {
+          console.log("transfer failed");
+          console.log(data);
+        }
+      });
+    },
+    onTransferCall() {
+      this.pageUrl = "call";
+      this.toggle_call_block = false
+      this.toggle_quick_connect = true;
+    },
+    backToCall(){
+      this.toggle_call_block = true
+      this.toggle_quick_connect = false;
+    },
     openCreateTicket(){
       let passData = {};
       passData.action = "openNewTicket";
@@ -601,7 +890,7 @@ export default {
         }
       } , false);
 
-      connect.core.initCCP(containerDiv, {
+      this.connectObject = connect.core.initCCP(containerDiv, {
         ccpUrl: loginUrl,
         loginPopup:    false,
         //region: "us-east-1",          
@@ -609,11 +898,6 @@ export default {
           allowFramedSoftphone : true  
         }
       });
-
-      // saving contact object to state
-      connect.contact(function(contact){
-        thisKey.contactObject = contact;
-      })
 
       // saving agent object to state
       connect.agent(function(agent){
@@ -623,9 +907,17 @@ export default {
         //console.log(agent.getDialableCountries());
         thisKey.dialableCountries = dialableCountries(agent.getDialableCountries());
         //console.log( "===> agent status " + JSON.stringify(agent.getAgentStates()));
-      })
 
-      
+        agent.getEndpoints(agent.getAllQueueARNs(), {
+          success: function(data){ 
+            thisKey.quickconnects = data.endpoints;
+          },
+          failure:function(){
+            console.log("getting quick connects failed")
+          }
+        });
+
+      })
 
       var eventBus = connect.core.getEventBus();
       eventBus.subscribe(connect.AgentEvents.INIT, function () {
@@ -639,9 +931,28 @@ export default {
         parent.postMessage(passData,"*");
         console.log("Connected Agent -- > "+ thisKey.agentUserName);
       });
+
+      eventBus.subscribe(connect.ContactEvents.REFRESH, function(){
+          try {
+            //console.log(JSON.stringify(thisKey.contactObject.getSingleActiveThirdPartyConnection()));
+            let outbound = thisKey.contactObject.getSingleActiveThirdPartyConnection();
+            if(outbound && outbound.isConnecting()){
+              console.log("Transfer not COnnected");
+                return;
+            }
+            if(outbound && outbound.isConnected()){
+                console.log("Transfer COnnected");
+                thisKey.confCall.callerTwoStatus = "Connected";
+                this.unsubscribe();
+            }
+          } catch (e) {
+              console.error("Error in addConnection:OnRefresh. " + e.message);
+          }
+      });
       
       connect.contact(function(contact) {
         var data;
+        thisKey.contactObject = contact;
         contact.onConnecting(function() {
           var passData = {};
 
@@ -727,6 +1038,8 @@ export default {
         });
         
         contact.onEnded(function() {
+          thisKey.toggle_quick_connect = false;
+          thisKey.toggle_transfer = false;
           if(!thisKey.setAvailableTrigger) {
             //console.log("normal callend ----> setavailable triggered ")
             if(thisKey.callStatus == "Calling"){
@@ -827,7 +1140,7 @@ export default {
 
     },
     toggleCountryCodeSettings(){
-    this.toggle_country_code_settings = !this.toggle_country_code_settings;
+      this.toggle_country_code_settings = !this.toggle_country_code_settings;
     },
     toggleDialPad() {
       this.homePageUrl = this.homePageUrl == "dialpad" ? "calllog" : "dialpad";
@@ -856,10 +1169,34 @@ export default {
     
     },
     onHoldCall(){
+      let contact = this.contactObject;
+      let thisKey = this;
       this.onHold = !this.onHold;
-      this.callStatus = this.onHold ? "OnHold" : "Connected"
+      if(this.onHold){
+        contact.getInitialConnection().hold({
+          success: function() { 
+            thisKey.callStatus = "On Hold";
+            console.log("changed caller one to hold" + contact.getInitialConnection().isOnHold());
+          },
+          failure: function() { 
+            //thisKey.confCall.callerOneStatus = thisKey.confCall.callerOneStatus == "Joined" ? "Joined" : "Connected";
+            console.log("changed caller one to hold" + contact.getInitialConnection().isOnHold());
+          }
+        });
+      } else {
+        contact.getInitialConnection().resume({
+          success: function() { 
+            thisKey.callStatus = "Connected";
+            console.log("changed caller one to hold");
+          },
+          failure: function() { 
+            console.log("changed caller one to hold");
+          }
+        });
+      }
     },
     onMuteCall(){
+
       this.onMute = !this.onMute;
       if(this.onMute){
         this.callStatus = "Muted";
@@ -1084,7 +1421,7 @@ export default {
     margin-left: 5px;
 }
 .call-logs-list {
-  height: 300px;
+  height: 328px;
   overflow-x: hidden;
   overflow-y: scroll;
 }  
@@ -1098,7 +1435,7 @@ export default {
 }
 
 .tickets-list {
-  height: 235px;
+  height: 255px;
   /* width: 250px; */
   overflow-x: hidden;
   overflow-y: scroll;
@@ -1171,6 +1508,10 @@ export default {
   margin-bottom: 10px !important;
 }
 
+.call-control-buttons {
+   margin: 0 5px;
+}
+
 .call-handle-buttons{
   width: 110px;
   margin: 0 5px;
@@ -1178,6 +1519,7 @@ export default {
 
 .call-handler {
   display: table;
+  width: 100%;
   height: 390px;
   margin: 0 auto;
 }
@@ -1293,10 +1635,36 @@ export default {
 
   .ccp-container {
     width: 360px; 
-		height: 465px;
+		height: 495px;
     border-right: 1px solid #ccc;
     border-bottom: 1px solid #ccc;
     border-left: 1px solid #ccc;
     border-top: 1px solid #ccc;
+  }
+
+  .quick-connects-head {
+    text-align: left;
+  }
+
+  .quick-connects-close-icon {
+    float: right;
+    font-size: 20px;
+    margin-top: 5px;
+    cursor: pointer;
+  }
+
+  .quick-connects-body {
+    margin-top: 10px;
+  }
+
+  .quick-connects-name {
+    text-align: left !important;
+    font-size: 13px;
+    margin: 5px;
+  }
+
+  .quick-connects-title {
+    font-weight: bold;
+    font-size: 20px;
   }
 </style>

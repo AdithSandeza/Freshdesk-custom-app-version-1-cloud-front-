@@ -13,7 +13,8 @@ export const messages = {
         new_ticket : 'New Ticket',
         add_note : 'Add Note',
         adding : 'Adding',
-        for : 'for'
+        for : 'for',
+        leave_call : "Leave Call"
       },
     ja: {
         call_logs: 'コールログ',
@@ -28,6 +29,7 @@ export const messages = {
         new_ticket : '新しいチケット',
         add_note : 'メモを追加',
         adding : '追加中',
-        for : 'For'
+        for : 'ために',
+        leave_call : "電話を離れる"
     }
 };
