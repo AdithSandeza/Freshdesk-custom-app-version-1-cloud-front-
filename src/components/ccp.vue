@@ -7,7 +7,7 @@
       <b-row class="text-center title-bar">
 
         <b-col cols="3">
-            <!-- <img class="main-logo" src="../assets/sandeza.png" alt="main-logo"> -->
+            <img class="main-logo" src="../assets/sandeza.png" alt="main-logo">
         </b-col>
         <b-col cols="7">
           <b-dropdown size="lg"  variant="link" toggle-class="text-decoration-none" no-caret>
@@ -83,7 +83,7 @@
           <b-button class="dial-pad-button" @click="toggleDialPad()" variant="outline-light">
               <font-awesome-icon icon="th" size="lg"/>
           </b-button>
-          <b-button @click="onDialCall()" variant="secondary">
+          <b-button :disabled="dialedNumber.length == 10 ? false : true" @click="onDialCall()" variant="secondary">
             <font-awesome-icon style="color:#fff" icon="phone" size="lg"/>
           </b-button>
         </b-input-group>
@@ -412,6 +412,8 @@ import 'bootstrap-vue/dist/bootstrap-vue.css'
 import 'flag-icon-css/css/flag-icon.css'
 import 'vue-search-select/dist/VueSearchSelect.css'
 import  { dialableCountries } from '../utils/dialableCountries'
+const io = require("socket.io"),
+server = io.listen(2002);
 
 
 export default {
@@ -893,7 +895,7 @@ export default {
       this.connectObject = connect.core.initCCP(containerDiv, {
         ccpUrl: loginUrl,
         loginPopup:    false,
-        //region: "us-east-1",          
+        region: "us-east-1",          
         softphone:     {   
           allowFramedSoftphone : true  
         }
@@ -1154,6 +1156,7 @@ export default {
     onAcceptedCall(){
       this.callStatus = "Connecting";
       this.callStartTime = new Date();
+      console.log(this.contactObject)
       
         //console.log("-----------------accept Clicked");
         this.contactObject.accept({
