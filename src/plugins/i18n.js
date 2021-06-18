@@ -14,7 +14,8 @@ export const messages = {
         add_note : 'Add Note',
         adding : 'Adding',
         for : 'for',
-        leave_call : "Leave Call"
+        leave_call : "Leave Call",
+        clear_contact : "Clear contact"
       },
     ja: {
         call_logs: 'コールログ',
@@ -30,6 +31,7 @@ export const messages = {
         add_note : 'メモを追加',
         adding : '追加中',
         for : 'ために',
-        leave_call : "電話を離れる"
+        leave_call : "電話を離れる",
+        clear_contact: "明確な接触"
     }
 };
