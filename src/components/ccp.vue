@@ -574,6 +574,7 @@ export default {
       editorText: "",
       loggedin: false,
       connect_url: '',
+      connect_region:'',
       instanceName : '',
       pageUrl: "home", //home
       homePageUrl : "calllog",
@@ -660,7 +661,10 @@ export default {
   created(){
     let uri = window.location.search.substring(1); 
     let params = new URLSearchParams(uri);
+    
     this.connect_url = params.get("connect_url");
+    this.connect_region = params.get("connect_region")
+
     //console.log("URL params url ==> " +params.get("connect_url"));
     console.log("%%%%=>")
     console.log("%%%%=>" + window.top.location.href)
@@ -1064,6 +1068,8 @@ export default {
 
       var thisKey = this;
       var loginUrl = this.connect_url;
+      var region = this.connect_region;
+      console.log(region)
       //var loginUrl = "https://sandeza.awsapps.com/connect/ccp#/";
 
        window.addEventListener('message', function(event) {
@@ -1111,7 +1117,7 @@ export default {
         this.connectObject = connect.core.initCCP(containerDiv, {
           ccpUrl: loginUrl,
           loginPopup:    false,
-          region: "us-east-1",          
+          region: region,          
           softphone:     {   
             allowFramedSoftphone : true  
           }
@@ -1336,7 +1342,7 @@ export default {
           console.log("==> On Connected---------------")
 
           if(thisKey.tickets <= 0 && thisKey.outBoundCall) {
-            thisKey.createTicketOutbound()
+            // thisKey.createTicketOutbound()
           }
 
           if(!thisKey.outBoundCall) {
@@ -1367,7 +1373,7 @@ export default {
                   } else {
                     console.log("no tickets received");
                     thisKey.tickets = [];
-                    thisKey.createTicketOutbound()
+                    // thisKey.createTicketOutbound()
                   }
                 } catch(e) {
                   console.log("no customer info");
@@ -2087,6 +2093,8 @@ export default {
     border-bottom: 1px solid #ccc;
     border-left: 1px solid #ccc;
     border-top: 1px solid #ccc;
+    overflow-x: hidden;
+    overflow-y: hidden;
   }
 
   .quick-connects-head {
